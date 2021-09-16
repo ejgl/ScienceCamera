@@ -10,7 +10,7 @@ class TestEvoraParser(unittest.TestCase):
         self.parser = EvoraParser(self.evora)
 
     def test_parse_temp(self):
-        self.assertTrue(self.parser.parse('temp').isnumeric())
+        self.assertTrue(self.parser.parse('temp').__contains__('temp '))
 
     def test_parse_temprange(self):
         self.assertTrue(self.parser.parse('tempRange').contains('-'))
@@ -18,9 +18,8 @@ class TestEvoraParser(unittest.TestCase):
     @patch('evora.server.server.andor.GetTemperatureRange', return_value = [5, 10, 15])
     def test_parse_temprange_runs_andor_function(self, get_temp_range_mock):
         res = self.parser.parse('tempRange')
-        
         get_temp_range_mock.assert_called_once()
-        self.assertTrue(res.contains('5,10,15'))
+        self.assertTrue(res.__contains__('5,10,15'))
 
     def test_parse_shutdown(self):
         self.assertTrue(self.parser.parse('shutdown') == 'shutdown 1')
@@ -61,9 +60,6 @@ class TestEvoraParser(unittest.TestCase):
     def test_parse_warmup(self):
         self.assertTrue(self.parser.parse('warmup').contains('warmup '))
 
-    def test_parse_warmup(self):
-        self.assertTrue(self.parser.parse('warmup').contains('warmup '))
-
         with patch('evora.server.server.andor.SetFanMode', return_value=andor.DRV_SUCCESS):
             self.assertTrue(self.parser.parse('warmup').contains('1'))
                 # assert_called_once_with needed?
@@ -86,11 +82,30 @@ class TestEvoraParser(unittest.TestCase):
     def test_parse_status(self):
         self.assertTrue(self.parser.parse('status').isnumeric()) 
     
-    def test_parse_vertStats(self):
-        self.assertTrue(self.parser.parse('vertStats') == '') # unfinished
-
-    def test_parse_horzStats(self):
-        self.assertTrue(self.parser.parse('horzStats') == '') # unfinished
+    @patch('evora.server.server.andor.GetNumberVSSpeeds', return_value=1)
+    @patch('evora.server.server.andor.GetNumberVSAmplitudes', return_value=1)
+    @patch('evora.server.server.andor.GetVSSpeed', return_value=1)
+    @patch('evora.server.server.andor.GetFastestRecommendedVSSpeed', return_value=1)
+    def test_parse_vertStats(self, get_number_vs_speeds_mock, get_number_vs_amplitudes_mock, 
+                             get_vs_speed_mock, get_fastest_recommended_vs_speed_mock):
+        #self.assertTrue(self.parser.parse('vertStats') == '') # unfinished
+        index = 1
+        self.parser.parse('vertStats' + str(index))
+        get_number_vs_speeds_mock.assert_called_once()
+        get_number_vs_amplitudes_mock.assert_called_once()
+        get_vs_speed_mock.assert_called_once_with(index)
+        get_fastest_recommended_vs_speed_mock.assert_called_once()
+        
+    @patch('evora.server.server.andor.GetNumberHSSpeeds')
+    @patch('evora.server.server.andor.GetHSSpeed')
+    def test_parse_horzStats(self, get_number_hs_speeds_mock, get_hs_speed_mock):
+        #self.assertTrue(self.parser.parse('horzStats') == '') # unfinished
+        channel = 1
+        type = 1
+        index = 1
+        self.parser.parse('horzStats' + str(channel) + str(type) + str(index))
+        get_number_hs_speeds_mock.assert_called_once_with(channel, type)
+        get_hs_speed_mock.assert_called_once_with(channel, type, index)
 
     def test_parse_abort(self):
         self.assertTrue(self.parser.parse('abort') == 'abort 1') 
